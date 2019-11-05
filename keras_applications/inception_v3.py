@@ -405,3 +405,29 @@ def preprocess_input(x, **kwargs):
         Preprocessed array.
     """
     return imagenet_utils.preprocess_input(x, mode='tf', **kwargs)
+
+#finetuning inceptionv3 
+def build_model(nb_classes):
+    base_model = InceptionV3(weights='imagenet', include_top=False)
+
+    # add a global spatial average pooling layer
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    # let's add a fully-connected layer
+    x = Dense(1024, activation='relu')(x)
+    # and a logistic layer
+    predictions = Dense(nb_classes, activation='softmax')(x)
+
+    # this is the model we will train
+    model = Model(input=base_model.input, output=predictions)
+
+    # first: train only the top layers (which were randomly initialized)
+    # i.e. freeze all convolutional InceptionV3 layers
+    for layer in base_model.layers:
+        layer.trainable = False
+
+    # compile the model (should be done *after* setting layers to non-trainable)
+    print "starting model compile"
+    compile(model)
+    print "model compile done"
+    return model
